@@ -48,6 +48,8 @@ function buttonResetClicked() {
 
 function buttonNextClicked() {
 
+	console.log("next clicked");
+
     if (passageID + 1 < inputJsonObject[docID].passage_list.length) {
         passageID += 1;
         updateScore();
@@ -63,16 +65,31 @@ function buttonNextClicked() {
 }
 
 function buttonSaveClicked() {
-    download(inputJsonObject, 'named_entity_annotation.json', 'text/plain');
+   //  download(inputJsonObject, 'named_entity_annotation.json', 'text/plain');
+
+	console.log("save clicked");
+
+	var json = JSON.stringify(inputJsonObject[docID].passage_list[0].passage_text);
+	json = [json]
+	var blob1 = new Blob(json, { type: "text/plain;charset=utf-8" });
+
+	var url = window.URL || window.webkitURL;
+	var link = url.createObjectURL(blob1);
+	var a = document.createElement("a");
+	a.download = "text1.txt";
+	a.href = link;
+	document.body.appendChild(a);
+	a.click();
+	document.body.removeChild(a);
 }
 
 function download(content, fileName, contentType) {
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([JSON.stringify(content, null, 2)], { type: contentType }));
-    a.setAttribute("download", fileName);
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+   // const a = document.createElement("a");
+   // a.href = URL.createObjectURL(new Blob([JSON.stringify(content, null, 2)], { type: contentType }));
+   // a.setAttribute("download", fileName);
+   // document.body.appendChild(a);
+   // a.click();
+   // document.body.removeChild(a);
 }
 
 
@@ -282,9 +299,9 @@ function initMainRegion() {
 
 
     mainRegionHTML += '<button class="largeButton" id="buttonPrev" onclick="buttonPrevClicked()">&#10094;   Previous passage</button> &nbsp;&nbsp;';
-    //mainRegionHTML += '<button class="largeButton " id="buttonReset" onclick="buttonResetClicked()">Reset passage</button> &nbsp;&nbsp;';
+   // mainRegionHTML += '<button class="largeButton " id="buttonReset" onclick="buttonResetClicked()">Reset passage</button> &nbsp;&nbsp;';
     mainRegionHTML += '<button class="largeButton" id="buttonNext" onclick="buttonNextClicked()" >Next passage  &#10095;</button><br><br>';
-    //mainRegionHTML += '&nbsp;&nbsp; <button class="largeButton" id="buttonNext" onclick="buttonSaveClicked()" >Save</button><br><br>';
+    mainRegionHTML += '&nbsp;&nbsp; <button class="largeButton" id="buttonNext" onclick="buttonSaveClicked()" >Save</button><br><br>';
     mainRegionHTML += '<strong><span id="docTitle"></span></strong><br><br>';
     //Create tag
     mainRegionHTML += '<strong> Is this a good note? </strong>';
