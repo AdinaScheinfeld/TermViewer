@@ -11,6 +11,7 @@ let highlightedNamedEntityTypeDict = new Object();
 let allNamedEntityTypeDict = new Object();
 let allNamedEntityTypeList = [];
 let segOffsetList = [];
+let tagList = [];
 
 function allEntitesAreReviewed() {
     for (let entityId = 0; entityId < inputJsonObject[docID].passage_list[passageID].named_entity_list.length; entityId++) {
@@ -67,20 +68,66 @@ function buttonNextClicked() {
 function buttonSaveClicked() {
    //  download(inputJsonObject, 'named_entity_annotation.json', 'text/plain');
 
-	console.log("save clicked");
-
-	var json = JSON.stringify(inputJsonObject[docID].passage_list[0].passage_text);
+	let json = buildAnnotatedFile();
 	json = [json]
-	var blob1 = new Blob(json, { type: "text/plain;charset=utf-8" });
+	let blob1 = new Blob(json, { type: "text/plain;charset=utf-8" });
 
-	var url = window.URL || window.webkitURL;
-	var link = url.createObjectURL(blob1);
-	var a = document.createElement("a");
+	let url = window.URL || window.webkitURL;
+	let link = url.createObjectURL(blob1);
+	let a = document.createElement("a");
 	a.download = "text1.txt";
 	a.href = link;
 	document.body.appendChild(a);
 	a.click();
 	document.body.removeChild(a);
+}
+
+function buildAnnotatedFile() {
+
+	let note_path = inputJsonObject[docID].source_file;
+	let evaluator = document.getElementById('name').value;
+
+	// remove first element and reverse order
+	let segOffsetList_shifted = segOffsetList.slice(1);
+	let segOffsetList_reversed = segOffsetList_shifted.slice().reverse();
+
+	// convert to array to enable editing
+	let j = inputJsonObject[docID].passage_list[0].passage_text;
+	j = j.split("");
+
+	$.ajaxSetup({
+    		async: false
+	});
+
+	for(let i=0; i<segOffsetList_reversed.length; i+=2){
+        	$.getJSON($SCRIPT_ROOT + '/get_tag_score', {
+        		path: note_path,
+        		evaluator: evaluator,
+        		offset: segOffsetList_reversed[i+1],
+        		tag_length: segOffsetList_reversed[i]
+    	}, function(response) {
+        	console.log(response.score);
+        	if(response.score == 1){
+            	j.splice(segOffsetList_reversed[i+1],0, "+++");
+            	j.splice(segOffsetList_reversed[i]+1,0, "+++");
+            	console.log("+");
+        }
+        else if(response.score == 0){
+            	j.splice(segOffsetList_reversed[i+1],0, "---");
+            	j.splice(segOffsetList_reversed[i]+1,0, "---");
+            	console.log("-");
+        }
+        console.log('GET successful');
+    		});
+
+	}
+
+	$.ajaxSetup({
+    		async: true
+	});
+
+	j = j.join("");
+	return j;
 }
 
 function download(content, fileName, contentType) {
@@ -363,6 +410,9 @@ function displayTagInfo(id, entityStartPos, entityEndPos, score) {
         yesNoLabel = `?`;
     }
     console.log(`tag_${id}`);
+	console.log(`start ${entityStartPos}`)
+	console.log(`end ${entityEndPos}`)
+	console.log(`score ${score}`)
     document.getElementById(`tag_${id}`).innerHTML = `<span onclick="changeEntityStatus(${id}, ${entityStartPos}, ${entityEndPos}, ${score})" class="yesNoUnk unkLabel">${yesNoLabel}</span>`;
 }
 
@@ -405,12 +455,12 @@ function display1PassageInMainBox() {
 //        if (inputJsonObject[docID].passage_list[passageID].named_entity_list[entityId].status == 'false') {
 //            yesNoLabel = `<span onclick="changeEntityStatus(${entityId}, del=false)" class="yesNoUnk noLabel">N</span>`;
 //        } else if (inputJsonObject[docID].passage_list[passageID].named_entity_list[entityId].status == 'true') {
-//            yesNoLabel = `<span onclick="changeEntityStatus(${entityId}, del=false)" class="yesNoUnk yesLabel">Y</span>`;
+//           yesNoLabel = `<span onclick="changeEntityStatus(${entityId}, del=false)" class="yesNoUnk yesLabel">Y</span>`;
 //        } else {
 //            yesNoLabel = `<span onclick="changeEntityStatus(${entityId}, del=false)" class="yesNoUnk unkLabel">?</span>`;
 //        }
 
-        //let trash_button = `<i class="fa fa-trash trashButton" onclick="changeEntityStatus(${entityId}, del=true)"></i>`;
+//       let trash_button = `<i class="fa fa-trash trashButton" onclick="changeEntityStatus(${entityId}, del=true)"></i>`;
 
         if(enableTagEdit){
 //            let yesNoLabel = `<span onclick="changeEntityStatus(${entityId}, ${entityStartPos}, ${entityEndPos})" class="yesNoUnk unkLabel">?</span>`;
@@ -556,10 +606,10 @@ function changeEntityStatus(entityId, offset, length, current_score) {
 }
 
 //function changeEntityStatus(entityId, del = false) {
-//    if (del) {
+//	if (del) {
 //        if (confirm("Are you sure to delete this entity? This action cannot be undone.")) {
 //            inputJsonObject[docID].passage_list[passageID].named_entity_list[entityId].status = 'deleted';
-//        } else {
+//} else {
 //            return;
 //        }
 //    } else if (inputJsonObject[docID].passage_list[passageID].named_entity_list[entityId].status == 'true') {
@@ -569,9 +619,9 @@ function changeEntityStatus(entityId, offset, length, current_score) {
 //    } else if (inputJsonObject[docID].passage_list[passageID].named_entity_list[entityId].status == 'false') {
 //        inputJsonObject[docID].passage_list[passageID].named_entity_list[entityId].status = 'unknown';
 //    } else {
-//        alert('ERROR! unknown entity status!');
+//       alert('ERROR! unknown entity status!');
 //    }
-//
+
 //    display1PassageInMainBox();
 //    return;
 //}
